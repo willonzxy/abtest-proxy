@@ -30,9 +30,14 @@ class BaseController extends Controller{
      * 先从url上获取uid,
      * 再从cookie上获取uid
      */
-    getUid(){
+    getUid(type){
         const { ctx } = this;
-        
+        let uid = ctx.query.uid || ctx.cookies.get('x-abtest-uid');
+        // web类型的应用场景
+        // if(uid || type === ctx.config.DEV_TYPE.WEB){
+
+        // }
+        return uid
     }
     getConfigByAppId(app_id){
         let ctx = this;

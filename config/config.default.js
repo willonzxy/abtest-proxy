@@ -15,7 +15,26 @@ module.exports = appInfo => {
   // use for cookie sign key, should change to your own and keep security
   // abtest-server的key一致
   config.keys = appInfo.name + '_1615358289384_1479_abtest';
-
+  config.DEV_TYPE = {
+    WEB:1,
+    WXAPP:2,
+    ANDROID:3,
+    IOS:4
+  }
+  config.error_verbose = {
+    url_leak_id:{
+      code:-1,
+      msg:'url leak id'
+    },
+    url_invalid:{
+      code:-2,
+      msg:'url invalid'
+    },
+    leak_uid:{
+      code:-3,
+      msg:'leak uid'
+    }
+  }
   // add your middleware config here
   // config.middleware = ['carryRequestId','checkSqlInjectAttack','acl','autoUpdateDate'];
 
