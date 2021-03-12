@@ -1,0 +1,7 @@
+{
+    "name": "egg-btqiniu",
+    "eggPlugin": {
+      "name": "btqiniu",
+      "env": [ "local", "test", "prod" ]
+    }
+  }
