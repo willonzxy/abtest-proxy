@@ -8,6 +8,6 @@ const { Controller } = require("egg");
  */
 module.exports = app => {
   const { router , controller } = app;
-  router.get('/layer/:id',controller.layer.index)
+  // router.get('/layer/:id',controller.layer.index)
   router.get('/app/:id',controller.app.index)
 };
