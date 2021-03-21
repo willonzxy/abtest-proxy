@@ -21,6 +21,7 @@ class AppController extends BaseController {
         let config = await this.getConfigByAppId(app_id);
         if(!config || !config.data || (config.data.length === 0)){
             // todo delete app shunt_model
+            delete app.shunt_model[app_id];
             return ctx.body = app.config.VERBOSE.ERROR_TOAST.LEAK_CONFIG
         }
         // 从实验数据中整理出分流模型

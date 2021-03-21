@@ -2,12 +2,12 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 15:25:28
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-03-20 20:45:02
+ * @ Modified time: 2021-03-21 11:33:56
  * @ Description:
  */
 const Service = require('egg').Service;
 const murmurHash3 = require("murmurhash3js");
-
+const md5 = require('md5');
 class BaseService extends Service {
     constructor(ctx, table_name) {
         super(ctx);
@@ -17,12 +17,11 @@ class BaseService extends Service {
         let config = this.app.abtest_config[app_id]
         if (!config) {
             // get config from rpc
-            config = await this.getConfigFromRPC(app_id);
+            config = await this.getConfigByRPC(app_id);
         }
-        this.app.abtest_config[app_id] = config
         return config;
     }
-    async getConfigFromRPC(app_id) {
+    async getConfigByRPC(app_id) {
         const {
             app,
             ctx
@@ -49,17 +48,26 @@ class BaseService extends Service {
     shuntModelMapping(app_id, config) {
         const {
             app
-        } = this
+        } = this;
         let shunt_model = app.shunt_model[app_id];
-        try {
+        let content_md5 = md5(JSON.stringify(config));
+        try {// 如果分流模型存在那就调整分流模型即可，无则需要创建
             if (!!shunt_model) {
-                // 调整分流模型
-                shunt_model = this.adjustAppShuntModel(shunt_model, config)
+                // 如果分流配置发生了变化才需要调整分流模型
+                if(content_md5 === app.abtest_config_md5[app_id]){
+                    console.log('分流配置与此前的一致，无需调整分流模型')
+                }else{
+                    // 调整分流模型
+                    shunt_model = this.adjustAppShuntModel(app_id,shunt_model, config);
+                }
+            }else{
+                shunt_model = this.createAppShuntModel(app_id, config)
             }
-            shunt_model = this.createAppShuntModel(app_id, config)
         } catch (error) {
-            
+            console.log(error);
         }
+        app.abtest_config_md5[app_id] = content_md5
+        app.abtest_config[app_id] = config
         return shunt_model
     }
     /**
@@ -137,7 +145,7 @@ class BaseService extends Service {
      * 3 先收到桶
      * 4 再分配桶
      */
-    adjustAppShuntModel(shunt_model,new_config) {
+    adjustAppShuntModel(app_id,shunt_model,new_config) {
         // free记录各场景空闲桶的
         let free = {},BUCKET_NUM = this.app.config.BUCKET_NUM;
         for (let {
@@ -193,6 +201,15 @@ class BaseService extends Service {
                 old_exp_set[exp_id].bucket = old_exp_set[exp_id].bucket.concat(free[layer_id].splice(0, diff))
             }
         }
+        // 删除被移除的场景
+        let old_config = this.app.abtest_config[app_id]
+        for(let {layer_id} of old_config){
+            if( new_config.some(i=>i.layer_id !== layer_id)){
+                delete shunt_model.layer[layer_id];
+                delete shunt_model.launch_layer[layer_id];
+                console.log(layer_id+'已被删除');
+            }
+        }
         return shunt_model
     }
     getBucket(start = 0, len) {
@@ -237,6 +254,7 @@ class BaseService extends Service {
                 let mod = hash % BUCKET_NUM;
                 let exp_set = layer_shunt_model.exp_set;
                 for(let exp_id in exp_set){
+                    // 命中桶的记录下来
                     if(exp_set[exp_id].bucket.some(i=>i === mod)){
                         hit_info.layer[layer_id] = {
                             hit_exp_api:exp_set[exp_id].api,
