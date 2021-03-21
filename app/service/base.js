@@ -1,10 +1,3 @@
-/**
- * @ Author: 伟龙-willon
- * @ Create Time: 2019-07-30 15:25:28
- * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-03-21 11:33:56
- * @ Description:
- */
 const Service = require('egg').Service;
 const murmurHash3 = require("murmurhash3js");
 const md5 = require('md5');
@@ -31,7 +24,7 @@ class BaseService extends Service {
         try {
             res = await app.curl(db_api);
             res = JSON.parse(res.data.toString())
-            res = res.data
+            res = res.data.data
         } catch (error) {
             console.log(error);
             res = undefined
@@ -127,14 +120,20 @@ class BaseService extends Service {
                     _weight
                 } = exp_item;
                 let len = _weight * app.config.BUCKET_NUM;
-                console.log(exp_id)
                 let bucket = this.getBucket(index, len);
                 app.shunt_model[app_id].layer[layer_id].exp_set[exp_id] = {
                     api:exp_api,
                     bucket
                 }
-                console.log(bucket)
-                index = len
+                index = len;
+                // 流量占比100%的实验，将该场景提升到launch层
+                if(_weight === 1){
+                    console.log('流量推全的实验'+exp_id)
+                    app.shunt_model[app_id].launch_layer[layer_id] = {
+                        api:exp_api,
+                        exp_id
+                    }
+                }
             }
         }
         return app.shunt_model[app_id]
@@ -186,6 +185,14 @@ class BaseService extends Service {
                 }
                 // 更新api
                 old_exp_set[exp_id].api = exp_api;
+                // 更新launch layer
+                if(_weight === 1){
+                    shunt_model.launch_layer[layer_id] = {
+                        api:exp_api,
+                        exp_id
+                    }
+                    console.log('流量推全的实验'+exp_id)
+                }
             }
             // 如果新配置中删除了某个实验，那么将收回该场景的所有流量桶
             for( let old_exp_id in old_exp_set ){
@@ -236,7 +243,12 @@ class BaseService extends Service {
             let layer_shunt_model = layers[layer_id];
             if(shunt_model.launch_layer[layer_id]){
                 // 记录对应场景所命中实验数据api
-                hit_info.layer[layer_id] = shunt_model.launch_layer[layer_id]
+                let { api , exp_id } = shunt_model.launch_layer[layer_id];
+                hit_info.layer[layer_id] = {
+                    hit_exp_api:api,
+                    hit_exp_id:exp_id
+                }
+                console.log('命中launch layer层',layer_id)
                 continue
             }
             // 如果没有在launch_layer层那就走分流逻辑

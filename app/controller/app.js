@@ -19,13 +19,14 @@ class AppController extends BaseController {
             uid = uuidv4();
         }
         let config = await this.getConfigByAppId(app_id);
-        if(!config || !config.data || (config.data.length === 0)){
+        console.table(config)
+        if(!config || config.length === 0){
             // todo delete app shunt_model
             delete app.shunt_model[app_id];
             return ctx.body = app.config.VERBOSE.ERROR_TOAST.LEAK_CONFIG
         }
         // 从实验数据中整理出分流模型
-        let shunt_model = this.shuntModelMapping(app_id,config.data);
+        let shunt_model = this.shuntModelMapping(app_id,config);
         // 生成hash因子，获取分流信息
         let hash_id = `${uid}_${decodeURIComponent(ctx.request.href)}`
         let hit_info  = this.getHitInfo(app_id,shunt_model,hash_id);
