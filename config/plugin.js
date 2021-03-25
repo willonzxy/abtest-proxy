@@ -26,5 +26,9 @@ module.exports = {
   alinode:{
     enable:true,
     package:'egg-alinode'
+  },
+  httpProxy:{
+    enable: true,
+    package: '@eggjs/http-proxy',
   }
 };

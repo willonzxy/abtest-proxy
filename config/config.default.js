@@ -23,7 +23,7 @@ module.exports = appInfo => {
     // 提示语
     VERBOSE:verbose,
     // 分流桶的数量
-    BUCKET_NUM:100,
+    BUCKET_NUM:10000,
     ABTEST_UID_COOKIE_NAME:'baioo-abtest-uid',
     ABTEST_TRACE_ID_COOKIE_NAME:'baioo-abtest-trace-id',
     // 3天

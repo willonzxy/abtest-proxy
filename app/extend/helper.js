@@ -26,5 +26,8 @@ module.exports = {
             }
             return ip;
         })()
+    },
+    isIpHostName(str){
+        return str.split('.').length === 4
     }
 }

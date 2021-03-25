@@ -14,12 +14,14 @@ class AppController extends BaseController {
     async index() {
         const { ctx , app } = this;
         const app_id = ctx.params.id;
+        // if(!this.verifyUrl()){
+        //     return ctx.body = app.config.VERBOSE.ERROR_TOAST.URL_INVALID
+        // }
         let uid = this.getUid();
         if(!uid){
             uid = uuidv4();
         }
         let config = await this.getConfigByAppId(app_id);
-        console.table(config)
         if(!config || config.length === 0){
             // todo delete app shunt_model
             delete app.shunt_model[app_id];
@@ -28,9 +30,8 @@ class AppController extends BaseController {
         // 从实验数据中整理出分流模型
         let shunt_model = this.shuntModelMapping(app_id,config);
         // 生成hash因子，获取分流信息
-        let hash_id = `${uid}_${decodeURIComponent(ctx.request.href)}`
-        let hit_info  = this.getHitInfo(app_id,shunt_model,hash_id);
-        hit_info.uid = uid;
+        let hash_id = `${uid}_${decodeURIComponent(ctx.request.protocol + '://' + ctx.request.host + ctx.request.path)}`
+        let hit_info  = this.getHitInfo(app_id,shunt_model,hash_id,uid);
         // set uid trace_idin cookie
         this.setCookies(app_id,uid,hit_info.trace_id);
         // 根据query string 来动态响应内容

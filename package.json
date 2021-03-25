@@ -7,6 +7,7 @@
     "declarations": true
   },
   "dependencies": {
+    "@eggjs/http-proxy": "^1.1.0",
     "alinode": "0.0.0",
     "dayjs": "^1.10.4",
     "egg": "^2.15.1",
@@ -33,9 +34,10 @@
     "node": ">=10.0.0"
   },
   "scripts": {
-    "start": "egg-scripts start --daemon --title=egg-server-abtest-server",
-    "stop": "egg-scripts stop --title=egg-server-abtest-server",
-    "dev": "egg-bin dev",
+    "start": "egg-scripts start --daemon --port 9527 --title=abtest-proxy",
+    "start:test": "egg-scripts start --env=test --daemon --port 9527 --title=abtest-proxy",
+    "stop": "egg-scripts stop --title=abtest-proxy",
+    "dev": "egg-bin dev --port 9527",
     "debug": "egg-bin debug",
     "test": "npm run lint -- --fix && npm run test-local",
     "test-local": "egg-bin test",

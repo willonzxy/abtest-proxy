@@ -1,6 +1,10 @@
 const Service = require('egg').Service;
 const murmurHash3 = require("murmurhash3js");
 const md5 = require('md5');
+
+let count = {
+
+}
 class BaseService extends Service {
     constructor(ctx, table_name) {
         super(ctx);
@@ -10,26 +14,71 @@ class BaseService extends Service {
         let config = this.app.abtest_config[app_id]
         if (!config) {
             // get config from rpc
+            console.log('获取配置从远程服务')
             config = await this.getConfigByRPC(app_id);
         }
         return config;
     }
     async getConfigByRPC(app_id) {
-        const {
-            app,
-            ctx
-        } = this;
-        let db_api = `http://cms-api-test.100bt.com/res/222?sign=7656d4cc98df16c16b94ab3326c36303&app_id=${app_id}`;
-        let res = undefined;
-        try {
-            res = await app.curl(db_api);
-            res = JSON.parse(res.data.toString())
-            res = res.data.data
-        } catch (error) {
-            console.log(error);
-            res = undefined
-        }
-        return res
+        // const {
+        //     app,
+        //     ctx
+        // } = this;
+        // let db_api = `http://cms-api-test.100bt.com/res/222?sign=7656d4cc98df16c16b94ab3326c36303&app_id=${app_id}`;
+        // let res = undefined;
+        // try {
+        //     res = await app.curl(db_api);
+        //     res = JSON.parse(res.data.toString())
+        //     res = res.data.data
+        // } catch (error) {
+        //     console.log(error);
+        //     res = undefined
+        // }
+        // return res
+        return [
+            // 一个场景下的实验分流配置
+            {
+                "app_id": "10086",  // 应用id  ( id不一定要为数字类型，字符串类型亦可 )
+                "layer_id": "10086_001", // 场景id
+                "ref_exp_id": "10086_001_001", // 对照实验组id
+                "ref_exp_api": "http://img4.a0bi.com/upload/articleResource/20200716/1594889281698.png", // 对照实验组的数据接口
+                "hit": 1, // 参与实验的流量占，也叫抽样流量
+                "version":1,
+                "exp_set": [  // 实验组配置，数组长度要 >=2 ，且各实验的流量占比加起来要为1
+                    {
+                        "exp_id": "10086_001_001",
+                        "exp_api": "http://img4.a0bi.com/upload/articleResource/20200716/1594889281698.png",
+                        "_weight": 0.5  // 在抽样流量中的占比，取值区间[0,1]
+                    },
+                    {
+                        "exp_id": "10086_001_002",
+                        "exp_api": "http://resource.a0bi.com/aoqisy/yuyue/img/yuyue/4.png?__rev=221d99b",
+                        "_weight": 0.5
+                    }
+                ]
+            },
+            // 另一个场景下的实验分流配置如下，数据结构同上
+            {
+                "app_id": "10086",  // 应用id  ( id不一定要为数字类型，字符串类型亦可 )
+                "layer_id": "10086_002", // 场景id
+                "ref_exp_id": "10086_002_001", // 对照实验组id
+                "ref_exp_api": "http://cms-api-test.100bt.com/res/149?sign=a9326fb557232e75dc041fa19947a431", // 对照实验组的数据接口
+                "hit": 1, // 参与实验的流量占，也叫抽样流量
+                "version":1,
+                "exp_set": [  // 实验组配置，数组长度要 >=2 ，且各实验的流量占比加起来要为1
+                    {
+                        "exp_id": "10086_002_001",
+                        "exp_api": "http://cms-api-test.100bt.com/res/149?sign=a9326fb557232e75dc041fa19947a431",
+                        "_weight": 0.5  // 在抽样流量中的占比，取值区间[0,1]
+                    },
+                    {
+                        "exp_id": "10086_002_002",
+                        "exp_api": "http://cms-api-test.100bt.com/res/165?sign=1B9NLwxwmhqt1sFNBYEmSVvhWaKa5PCuU1",
+                        "_weight": 1
+                    }
+                ]
+            },
+        ]
     }
     /**
      * 
@@ -76,12 +125,14 @@ class BaseService extends Service {
                 [layer_id]:{
                     ref_exp:{
                         api:'',
-                        bucket:[]
+                        bucket:[],
+                        version
                     },
                     exp_set:{
                         100:{
                             url:'',
-                            bucket:[]
+                            bucket:[],
+                            version
                         }
                     }
                 }
@@ -100,6 +151,7 @@ class BaseService extends Service {
             let {
                 hit,
                 layer_id,
+                version,
                 exp_set,
                 ref_exp_api
             } = item;
@@ -107,7 +159,8 @@ class BaseService extends Service {
             app.shunt_model[app_id].layer[layer_id] = {
                 ref_exp: {
                     api:ref_exp_api,
-                    bucket:this.getBucket(0, (1 - hit) * app.config.BUCKET_NUM)
+                    bucket:this.getBucket(0, (1 - hit) * app.config.BUCKET_NUM),
+                    version
                 },
                 exp_set: {}
             };
@@ -123,7 +176,8 @@ class BaseService extends Service {
                 let bucket = this.getBucket(index, len);
                 app.shunt_model[app_id].layer[layer_id].exp_set[exp_id] = {
                     api:exp_api,
-                    bucket
+                    bucket,
+                    version
                 }
                 index = len;
                 // 流量占比100%的实验，将该场景提升到launch层
@@ -131,7 +185,8 @@ class BaseService extends Service {
                     console.log('流量推全的实验'+exp_id)
                     app.shunt_model[app_id].launch_layer[layer_id] = {
                         api:exp_api,
-                        exp_id
+                        exp_id,
+                        version
                     }
                 }
             }
@@ -149,6 +204,7 @@ class BaseService extends Service {
         let free = {},BUCKET_NUM = this.app.config.BUCKET_NUM;
         for (let {
                 layer_id,
+                version,
                 hit,
                 exp_set,
                 ref_exp_api
@@ -156,7 +212,8 @@ class BaseService extends Service {
             // 直接重新分配对照组的流量桶
             shunt_model.layer[layer_id].ref_exp = {
                 api:ref_exp_api,
-                bucket:this.getBucket(0, (1 - hit) * BUCKET_NUM)
+                bucket:this.getBucket(0, (1 - hit) * BUCKET_NUM),
+                version
             }
             // 旧的实验组
             let old_exp_set = shunt_model.layer[layer_id].exp_set;
@@ -185,11 +242,13 @@ class BaseService extends Service {
                 }
                 // 更新api
                 old_exp_set[exp_id].api = exp_api;
+                old_exp_set[exp_id].version = version;
                 // 更新launch layer
                 if(_weight === 1){
                     shunt_model.launch_layer[layer_id] = {
                         api:exp_api,
-                        exp_id
+                        exp_id,
+                        version
                     }
                     console.log('流量推全的实验'+exp_id)
                 }
@@ -228,7 +287,7 @@ class BaseService extends Service {
         }
         return arr;
     }
-    getHitInfo(app_id,shunt_model,hash_id){
+    getHitInfo(app_id,shunt_model,hash_id,uid){
         let hit_info = {
             layer:{
 
@@ -243,12 +302,14 @@ class BaseService extends Service {
             let layer_shunt_model = layers[layer_id];
             if(shunt_model.launch_layer[layer_id]){
                 // 记录对应场景所命中实验数据api
-                let { api , exp_id } = shunt_model.launch_layer[layer_id];
+                let { api , exp_id , version } = shunt_model.launch_layer[layer_id];
                 hit_info.layer[layer_id] = {
                     hit_exp_api:api,
-                    hit_exp_id:exp_id
+                    hit_exp_id:exp_id,
+                    version
                 }
                 console.log('命中launch layer层',layer_id)
+                hit_info.trace_id.push(`${app_id}~${layer_id}~${exp_id}~${version}`)
                 continue
             }
             // 如果没有在launch_layer层那就走分流逻辑
@@ -259,7 +320,12 @@ class BaseService extends Service {
                 hit_info.layer[layer_id] = {
                     hit_exp_api:layer_shunt_model.ref_exp.api,
                     hit_exp_id:'',
+                    version:layer_shunt_model.ref_exp.version
                 }
+                
+                count['ref_exp'] ? count['ref_exp']++ : (count['ref_exp'] = 1);
+                
+                console.table(count)
             }else{
                 // 进入实验的流量重新hash打散
                 let hash = murmurHash3.x86.hash32(hash_id + layer_id);
@@ -268,17 +334,22 @@ class BaseService extends Service {
                 for(let exp_id in exp_set){
                     // 命中桶的记录下来
                     if(exp_set[exp_id].bucket.some(i=>i === mod)){
+                        let { version,api } = exp_set[exp_id]
                         hit_info.layer[layer_id] = {
-                            hit_exp_api:exp_set[exp_id].api,
-                            hit_exp_id:exp_id
+                            hit_exp_api:api,
+                            hit_exp_id:exp_id,
+                            version:version
                         }
-                        hit_info.trace_id.push(`${app_id}~${layer_id}~${exp_id}`)
+                        count[exp_id] ? count[exp_id]++ : (count[exp_id] = 1);
+                        console.table(count)
+                        hit_info.trace_id.push(`${app_id}~${layer_id}~${exp_id}~${version}`)
                         break;
                     }
                 }
             }
         }
         hit_info.trace_id = hit_info.trace_id.join('|')
+        hit_info.uid = uid;
         return hit_info
     }
 }
