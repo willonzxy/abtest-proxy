@@ -78,6 +78,11 @@ class BaseController extends Controller {
             httpOnly: false
         })
     }
+    /**
+     * 根据query string 返回命中的实验信息
+     * @param {*} hit_info 
+     * @returns 
+     */
     async dynamicResponse(hit_info) {
         const {
             ctx,
