@@ -10,75 +10,56 @@ class BaseService extends Service {
         super(ctx);
         this.table_name = table_name;
     }
+    /**
+     * 
+     * @param {String} app_id 
+     * @returns 
+     * 1、内存从获取
+     * 2、远程数据库获取
+     */
     async getConfigByAppId(app_id) {
         let config = this.app.abtest_config[app_id]
+        console.log({config:this.app.abtest_config[app_id]})
         if (!config) {
             // get config from rpc
-            console.log('获取配置从远程服务')
-            config = await this.getConfigByRPC(app_id);
+            console.log('从远程服务获取配置')
+            try {
+                config = await this.getConfigByRPC(app_id);
+                config = typeof config === 'string' ? JSON.parse(config) : config;
+                config = config.map(i=>{
+                    i.exp_set =  typeof i.exp_set === 'string' ? JSON.parse(i.exp_set) : i.exp_set;
+                    return i
+                });
+                this.app.abtest_config[app_id] = config.length === 0 ? undefined : config;
+            } catch (error) {
+                // error
+                console.log(error)
+            }
         }
         return config;
     }
+    /**
+     * 
+     * @param {String} app_id 
+     * @returns 
+     * 1、Redis
+     * 2、Mysql
+     */
     async getConfigByRPC(app_id) {
-        // const {
-        //     app,
-        //     ctx
-        // } = this;
-        // let db_api = `http://cms-api-test.100bt.com/res/222?sign=7656d4cc98df16c16b94ab3326c36303&app_id=${app_id}`;
-        // let res = undefined;
-        // try {
-        //     res = await app.curl(db_api);
-        //     res = JSON.parse(res.data.toString())
-        //     res = res.data.data
-        // } catch (error) {
-        //     console.log(error);
-        //     res = undefined
-        // }
-        // return res
-        return [
-            // 一个场景下的实验分流配置
-            {
-                "app_id": "10086",  // 应用id  ( id不一定要为数字类型，字符串类型亦可 )
-                "layer_id": "10086_001", // 场景id
-                "ref_exp_id": "10086_001_001", // 对照实验组id
-                "ref_exp_api": "http://img4.a0bi.com/upload/articleResource/20200716/1594889281698.png", // 对照实验组的数据接口
-                "hit": 1, // 参与实验的流量占，也叫抽样流量
-                "version":1,
-                "exp_set": [  // 实验组配置，数组长度要 >=2 ，且各实验的流量占比加起来要为1
-                    {
-                        "exp_id": "10086_001_001",
-                        "exp_api": "http://img4.a0bi.com/upload/articleResource/20200716/1594889281698.png",
-                        "_weight": 0.5  // 在抽样流量中的占比，取值区间[0,1]
-                    },
-                    {
-                        "exp_id": "10086_001_002",
-                        "exp_api": "http://resource.a0bi.com/aoqisy/yuyue/img/yuyue/4.png?__rev=221d99b",
-                        "_weight": 0.5
-                    }
-                ]
-            },
-            // 另一个场景下的实验分流配置如下，数据结构同上
-            {
-                "app_id": "10086",  // 应用id  ( id不一定要为数字类型，字符串类型亦可 )
-                "layer_id": "10086_002", // 场景id
-                "ref_exp_id": "10086_002_001", // 对照实验组id
-                "ref_exp_api": "http://cms-api-test.100bt.com/res/149?sign=a9326fb557232e75dc041fa19947a431", // 对照实验组的数据接口
-                "hit": 1, // 参与实验的流量占，也叫抽样流量
-                "version":1,
-                "exp_set": [  // 实验组配置，数组长度要 >=2 ，且各实验的流量占比加起来要为1
-                    {
-                        "exp_id": "10086_002_001",
-                        "exp_api": "http://cms-api-test.100bt.com/res/149?sign=a9326fb557232e75dc041fa19947a431",
-                        "_weight": 0.5  // 在抽样流量中的占比，取值区间[0,1]
-                    },
-                    {
-                        "exp_id": "10086_002_002",
-                        "exp_api": "http://cms-api-test.100bt.com/res/165?sign=1B9NLwxwmhqt1sFNBYEmSVvhWaKa5PCuU1",
-                        "_weight": 1
-                    }
-                ]
-            },
-        ]
+        let config = await this.getConfigFromRedis(app_id);
+        if(!config){
+            config = await this.getConfigFromMysql({app_id});
+        }
+        return config;
+    }
+    async getConfigFromRedis(app_id){
+        let res = await this.app.redis.get(app_id);
+        return res
+    }
+    async getConfigFromMysql(query){
+        let table_name = 'config';
+        let data = await this.app.mysql.get(table_name,query)
+        return data;
     }
     /**
      * 
@@ -97,7 +78,7 @@ class BaseService extends Service {
             if (!!shunt_model) {
                 // 如果分流配置发生了变化才需要调整分流模型
                 if(content_md5 === app.abtest_config_md5[app_id]){
-                    console.log('分流配置与此前的一致，无需调整分流模型')
+                    //console.log('分流配置与此前的一致，无需调整分流模型')
                 }else{
                     // 调整分流模型
                     shunt_model = this.adjustAppShuntModel(app_id,shunt_model, config);
@@ -217,6 +198,9 @@ class BaseService extends Service {
             }
             // 旧的实验组
             let old_exp_set = shunt_model.layer[layer_id].exp_set;
+            if(hit===0){
+                old_exp_set = {}
+            }
             // 当前场景下有哪些实验
             let now_layer_exp_set = new Set();
             // 流量占比被增大的实验组
@@ -287,7 +271,8 @@ class BaseService extends Service {
         }
         return arr;
     }
-    getHitInfo(app_id,shunt_model,hash_id,uid){
+    getHitInfo(app_id,qs_layer_id,shunt_model,hash_id,uid){
+        // console.log(JSON.stringify(shunt_model,'','\t'))
         let hit_info = {
             layer:{
 
@@ -295,10 +280,13 @@ class BaseService extends Service {
             trace_id:[]
         };
         const BUCKET_NUM = this.app.config.BUCKET_NUM;
-        // 如果layer_id存在，只输出该输指定场景下的命中信息
+        // 如果url中的queryString有layer_id存在，只输出该输指定场景下的命中信息
         // 否则就输出多场景的命中信息
         let layers = shunt_model.layer;
         for(let layer_id in layers){
+            if(!!qs_layer_id && layer_id !== qs_layer_id){
+                continue
+            }
             let layer_shunt_model = layers[layer_id];
             if(shunt_model.launch_layer[layer_id]){
                 // 记录对应场景所命中实验数据api
@@ -342,7 +330,7 @@ class BaseService extends Service {
                         }
                         count[exp_id] ? count[exp_id]++ : (count[exp_id] = 1);
                         console.table(count)
-                        hit_info.trace_id.push(`${app_id}~${layer_id}~${exp_id}~${version}`)
+                        hit_info.trace_id.push(`${app_id}-${layer_id}-${exp_id}-${version}`)
                         break;
                     }
                 }

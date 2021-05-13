@@ -14,8 +14,9 @@ module.exports = appInfo => {
   const config = exports = {};
 
   // use for cookie sign key, should change to your own and keep security
-  // abtest-server的key一致
-  config.keys = appInfo.name + '_1615358289384_1479_abtest';
+  // 与abtest-server的key一致
+  // config.keys = appInfo.name + '_1615358289384_1479_abtest';
+  config.keys = '_1615358289384_1479_abtest';
   // add your middleware config here
   config.middleware = [];
   // add your user config here
@@ -23,11 +24,11 @@ module.exports = appInfo => {
     // 提示语
     VERBOSE:verbose,
     // 分流桶的数量
-    BUCKET_NUM:10000,
+    BUCKET_NUM:100,
     ABTEST_UID_COOKIE_NAME:'baioo-abtest-uid',
     ABTEST_TRACE_ID_COOKIE_NAME:'baioo-abtest-trace-id',
-    // 3天
-    ABTEST_COOKIE_ALIVE_TIME:1000 * 60 * 60 * 24 * 3,
+    // 365天
+    ABTEST_COOKIE_ALIVE_TIME:1000 * 60 * 60 * 24 * 365,
     acl:{
       match(ctx){
         if(/^\/(layer|app)\//.test(ctx.path)){

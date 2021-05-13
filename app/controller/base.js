@@ -55,8 +55,8 @@ class BaseController extends Controller {
     shuntModelMapping(app_id, config) {
         return this.ctx.service[this.service_name].shuntModelMapping(app_id, config);
     }
-    getHitInfo(app_id, shunt_model, hash_id, uid) {
-        return this.ctx.service[this.service_name].getHitInfo(app_id, shunt_model, hash_id, uid)
+    getHitInfo(app_id,layer_id,shunt_model, hash_id, uid) {
+        return this.ctx.service[this.service_name].getHitInfo(app_id,layer_id,shunt_model, hash_id, uid)
     }
     setCookies(app_id, uid, trace_id) {
         const {
@@ -101,6 +101,7 @@ class BaseController extends Controller {
         if (layer && res_type === '302') {
             return layer_api && ctx.redirect(layer_api)
         }
+        // 暂时取消proxy的响应方式
         if (layer && res_type === 'proxy') {
             // let url_obj = URL.parse(layer_api);
             // console.log(url_obj);
@@ -113,6 +114,7 @@ class BaseController extends Controller {
             // });
         }
         if (res_type === 'detail') {
+            // 如果指定场景存在命中实验的信息，就只返回该场景下的信息
             if (layer) {
                 try {
                     let res = await app.curl(layer_api);

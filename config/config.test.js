@@ -2,7 +2,7 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 10:39:21
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-03-12 19:15:41
+ * @ Modified time: 2021-05-08 10:45:28
  * @ Description:
  */
 const path = require('path')
@@ -15,14 +15,7 @@ module.exports = {
             password: '000000',
             database: 'abtest',
         },
-        app:true,
-        agent:true,
-    },
-    security:{
-        csrf:{
-            enable:false,
-            ignore:ctx=>ctx.url === '/upload'
-        },
+        app:true
     },
     alinode:{
         enable:true,

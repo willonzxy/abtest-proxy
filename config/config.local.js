@@ -2,7 +2,7 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 10:39:21
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-03-12 19:17:19
+ * @ Modified time: 2021-05-08 10:41:25
  * @ Description:
  */
 const path = require('path');
@@ -18,21 +18,13 @@ module.exports = {
         app:true, 
         agent:true, // 实例挂载到agent进程上
     },
-    security:{
-        // csrf: {
-        //     enable:false,
-        //     ignore:ctx=>ctx.url === '/upload'
-        //     // type: 'ctoken',             // can be ctoken or referer or all, default to ctoken
-        //     // useSession: false,          // if useSession set to true, the secret will keep in session instead of cookie
-        //     // ignoreJSON: false,          // skip check JSON requests if ignoreJSON set to true
-        //     // cookieName: 'csrfToken',    // csrf token's cookie name
-        //     // sessionName: 'csrfToken',   // csrf token's session name
-        //     // headerName: 'x-csrf-token', // request csrf token's name in header
-        //     // bodyName: '_csrf',          // request csrf token's name in body
-        //     // queryName: '_csrf',         // request csrf token's name in query
-        //     // refererWhiteList: [],       // referer white list
-        // },
-        //domainWhiteList: [ 'http://cms-web-local.100bt.com:8080' ]
+    redis:{
+        client:{
+            port:6379,
+            host:'localhost',
+            password:'',
+            db:0
+        }
     },
     cors:{
         credentials: true, // 允许跨域请求携带cookies
