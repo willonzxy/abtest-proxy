@@ -25,7 +25,6 @@ class BaseService extends Service {
             console.log('从远程服务获取配置')
             try {
                 config = await this.getConfigByRPC(app_id);
-                config = typeof config === 'string' ? JSON.parse(config) : config;
                 config = config.map(i=>{
                     i.exp_set =  typeof i.exp_set === 'string' ? JSON.parse(i.exp_set) : i.exp_set;
                     return i
@@ -47,8 +46,10 @@ class BaseService extends Service {
      */
     async getConfigByRPC(app_id) {
         let config = await this.getConfigFromRedis(app_id);
+        config = config && typeof config === 'string' ? JSON.parse(config) : config;
         if(!config){
             config = await this.getConfigFromMysql({app_id});
+            config = config && typeof config === 'string' ? JSON.parse(config) : config;
         }
         return config;
     }
