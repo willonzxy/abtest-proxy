@@ -15,9 +15,9 @@ class AppController extends BaseController {
         const { ctx , app } = this;
         const app_id = ctx.params.id;
         const layer_id = ctx.query.layer_id;
-        // if(!this.verifyUrl()){
-        //     return ctx.body = app.config.VERBOSE.ERROR_TOAST.URL_INVALID
-        // }
+        if(!this.verifyUrl()){
+            return ctx.body = app.config.VERBOSE.ERROR_TOAST.URL_INVALID
+        }
         let uid = this.getUid();
         if(!uid){
             uid = uuidv4();

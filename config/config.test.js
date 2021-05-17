@@ -2,7 +2,7 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 10:39:21
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-05-08 10:45:28
+ * @ Modified time: 2021-05-17 17:34:37
  * @ Description:
  */
 const path = require('path')
@@ -17,6 +17,15 @@ module.exports = {
         },
         app:true
     },
+    redis:{
+        client:{
+            port:6379,
+            host:'10.17.2.212',
+            password:'',
+            db:1
+        }
+    },
+    // 伟龙个人阿里alinode配置
     alinode:{
         enable:true,
         appid: '81597',
@@ -25,5 +34,5 @@ module.exports = {
     logger:{
         dir:path.resolve(__dirname,'../logs/abtest-proxy'),
         consoleLevel: 'NONE',
-    },
+    }
 }

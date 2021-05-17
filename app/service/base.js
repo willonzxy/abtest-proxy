@@ -18,22 +18,25 @@ class BaseService extends Service {
      * 2、远程数据库获取
      */
     async getConfigByAppId(app_id) {
-        let config = this.app.abtest_config[app_id]
-        console.log({config:this.app.abtest_config[app_id]})
+        let config = this.app.abtest_config[app_id];
         if (!config) {
-            // get config from rpc
-            console.log('从远程服务获取配置')
             try {
                 config = await this.getConfigByRPC(app_id);
-                config = config.map(i=>{
-                    i.exp_set =  typeof i.exp_set === 'string' ? JSON.parse(i.exp_set) : i.exp_set;
-                    return i
-                });
-                this.app.abtest_config[app_id] = config.length === 0 ? undefined : config;
+                if(config){
+                    config = typeof config === 'string' ? JSON.parse(config) : config;
+                    config = config.map(i=>{
+                        i.exp_set =  typeof i.exp_set === 'string' ? JSON.parse(i.exp_set) : i.exp_set;
+                        return i
+                    });
+                    console.log(config)
+                    this.app.abtest_config[app_id] = config.length === 0 ? undefined : config;
+                }
             } catch (error) {
                 // error
                 console.log(error)
             }
+        }else{
+            console.log('get from memory')
         }
         return config;
     }
@@ -46,25 +49,27 @@ class BaseService extends Service {
      */
     async getConfigByRPC(app_id) {
         let config = await this.getConfigFromRedis(app_id);
-        config = config && typeof config === 'string' ? JSON.parse(config) : config;
-        if(!config){
+        // config = config && typeof config === 'string' ? JSON.parse(config) : config;
+        if(config === null){
             config = await this.getConfigFromMysql({app_id});
-            config = config && typeof config === 'string' ? JSON.parse(config) : config;
         }
         return config;
     }
     async getConfigFromRedis(app_id){
+        console.log('get from redis');
         let res = await this.app.redis.get(app_id);
         return res
     }
     async getConfigFromMysql(query){
-        let table_name = 'config';
-        let data = await this.app.mysql.get(table_name,query)
-        return data;
+        console.log('get from mysql');
+        let table_name = 'shunt_model_config';
+        let data = await this.app.mysql.get(table_name,query);
+        data = data || {}
+        return data.config;
     }
     /**
      * 
-     * @param {*} app_id 
+     * @param {*} app_id
      * @param {*} config 
      * 1 根据app_id查出分流模型
      * 2 没有就新建，有就调整
@@ -312,9 +317,9 @@ class BaseService extends Service {
                     version:layer_shunt_model.ref_exp.version
                 }
                 
-                count['ref_exp'] ? count['ref_exp']++ : (count['ref_exp'] = 1);
+                // count['ref_exp'] ? count['ref_exp']++ : (count['ref_exp'] = 1);
                 
-                console.table(count)
+                // console.table(count)
             }else{
                 // 进入实验的流量重新hash打散
                 let hash = murmurHash3.x86.hash32(hash_id + layer_id);
@@ -330,8 +335,8 @@ class BaseService extends Service {
                             version:version
                         }
                         count[exp_id] ? count[exp_id]++ : (count[exp_id] = 1);
-                        console.table(count)
-                        hit_info.trace_id.push(`${app_id}-${layer_id}-${exp_id}-${version}`)
+                        // console.table(count)
+                        hit_info.trace_id.push(`${app_id}_${layer_id}_${exp_id}_${version}`)
                         break;
                     }
                 }

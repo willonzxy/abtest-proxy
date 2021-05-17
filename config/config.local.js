@@ -2,7 +2,7 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 10:39:21
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-05-08 10:41:25
+ * @ Modified time: 2021-05-17 17:31:23
  * @ Description:
  */
 const path = require('path');
@@ -39,7 +39,7 @@ module.exports = {
     //     enable:true,
     // },
     logger:{
-        dir:path.resolve(__dirname,'../logs/abtest-server'),
+        dir:path.resolve(__dirname,'../logs/abtest-proxy'),
         consoleLevel: 'WARN',
     }
 }
