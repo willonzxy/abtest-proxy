@@ -1,0 +1,43 @@
+include:
+  - project: 'ywzc/ci-template'
+    ref: '2.0'
+    file: 'template.yml'
+
+variables:
+  SERVER: 10.17.2.212
+  SITE_PATH: "/home/site/abtest-proxy"
+  FTP_BASE: /adminaola/production/abtest-proxy
+  PACKAGE_NAME: 'abtest-proxy'
+
+# 把包传过去即可，不用build出新文件，如果有开发不小心上传了node_modules，删掉.pre-deploy
+.pre-deploy:
+  script:
+    - if [ ! -d empty_dir ];then
+    -   mkdir empty_dir
+    - fi
+    - if [ -d node_modules ];then
+    -   rsync --delete-before -a empty_dir/ node_modules/
+    - fi
+    - mkdir -p ${PACKAGE_NAME}
+    - for file in $(ls -a); do
+    -   if [[ $file != ${PACKAGE_NAME} && $file != "." && $file != ".." ]]; then
+    -     cp -R $file ${PACKAGE_NAME}
+    -   fi
+    - done
+
+test-deploy-scp:
+  extends:
+    - .test
+    - .deploy-scp
+  before_script:
+    - !reference [.pre-deploy,script]
+  script:
+    - !reference [.deploy-scp,script]
+    - ${SSH_CMD} "cd ${SITE_PATH} && npm run stop && npm ci --unsafe-perm=true --allow-root && npm run start:test"
+
+online-upload:
+  extends:
+    - .master
+    - .upload-zip
+  before_script:
+    - !reference [.pre-deploy,script]

@@ -2,7 +2,7 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 10:39:21
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-05-17 17:34:37
+ * @ Modified time: 2021-05-21 18:48:12
  * @ Description:
  */
 const path = require('path')
@@ -19,10 +19,10 @@ module.exports = {
     },
     redis:{
         client:{
-            port:6379,
+            port:5566,
             host:'10.17.2.212',
-            password:'',
-            db:1
+            password:'2021abtest',
+            db:0
         }
     },
     // 伟龙个人阿里alinode配置

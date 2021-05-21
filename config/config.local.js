@@ -2,7 +2,7 @@
  * @ Author: 伟龙-willon
  * @ Create Time: 2019-07-30 10:39:21
  * @ Modified by: 伟龙-willon
- * @ Modified time: 2021-05-17 17:31:23
+ * @ Modified time: 2021-05-18 18:17:15
  * @ Description:
  */
 const path = require('path');
@@ -24,7 +24,8 @@ module.exports = {
             host:'localhost',
             password:'',
             db:0
-        }
+        },
+        agent:true, // 实例挂载到agent进程上
     },
     cors:{
         credentials: true, // 允许跨域请求携带cookies
